@@ -26,3 +26,6 @@ History-journal
 *.sqlite
 *.db
 *.pem
+
+# Chrome Web Store upload package (build output)
+extension-dist/

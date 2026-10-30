@@ -15,7 +15,7 @@ const problems = [];
 
 const files = execSync("git ls-files --cached --others --exclude-standard", { encoding: "utf8" }).split("\n").filter(Boolean);
 for (const f of files) {
-  if (/\.(json|csv|tsv|sqlite|db|html?)$/i.test(f) && !ALLOWED_DATA.has(f) && !/^(index\.html|extension\/popup\.html)$/.test(f)) problems.push(`data file would be committed: ${f}`);
+  if (/\.(json|csv|tsv|sqlite|db|html?)$/i.test(f) && !ALLOWED_DATA.has(f) && !/^(index\.html|public\/privacy\.html|extension\/(popup|consent)\.html)$/.test(f)) problems.push(`data file would be committed: ${f}`);
   if (!existsSync(f) || statSync(f).size > 5_000_000) continue;
   const text = readFileSync(f, "utf8");
   if (text.includes(MARKER) && !/scripts\/check-no-private-data\.mjs|tests\//.test(f)) problems.push(`fixture marker found in ${f}`);

@@ -18,7 +18,7 @@ const opts = { cwd: "dist" };
 run("git init -q", opts);
 run("git checkout -q -b gh-pages", opts);
 run("git add -A", opts);
-run(`git -c user.name="Pricing Dashboard Deploy" -c user.email="deploy@users.noreply.github.com" commit -q -m "Deploy dashboard ${new Date().toISOString()}"`, opts);
+run(`git -c user.name="Consumer Lab Deploy" -c user.email="deploy@users.noreply.github.com" commit -q -m "Deploy dashboard ${new Date().toISOString()}"`, opts);
 run(`git push -f "${origin}" gh-pages`, opts);
 rmSync("dist/.git", { recursive: true, force: true });
 console.log("\nPublished to the gh-pages branch of", origin);

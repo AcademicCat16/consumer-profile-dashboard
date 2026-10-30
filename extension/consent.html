@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Connect Consumer Lab</title>
+  <link rel="stylesheet" href="ui.css" />
+</head>
+<body class="consent">
+  <main>
+    <div class="mark"><img src="icons/icon48.png" alt="" width="40" height="40" /></div>
+    <h1>Connect your Chrome history?</h1>
+    <p class="lead"><b id="origin">this dashboard</b> wants to read your own Chrome history to build your consumer profile.</p>
+
+    <ul class="facts">
+      <li><span>Reads</span> Visited page addresses, page titles and visit times from the <b id="days">last 90 days</b></li>
+      <li><span>Stays local</span> The data goes only to that dashboard tab, where it is analysed. It is never uploaded or sent to AI services.</li>
+      <li><span>Never reads</span> Cookies, passwords, form data or sign-in details</li>
+      <li><span>You control it</span> Disconnect at any time from the dashboard, this extension's menu, or <code>chrome://extensions</code></li>
+    </ul>
+
+    <p id="firstTime" class="note">Next, Chrome will ask you to confirm <b>“Read your browsing history”</b>. This happens once.</p>
+    <div class="actions">
+      <button id="deny" class="secondary">Not now</button>
+      <button id="allow" class="primary">Allow and continue</button>
+    </div>
+    <p id="status" role="status" class="status"></p>
+  </main>
+  <script src="consent.js"></script>
+</body>
+</html>

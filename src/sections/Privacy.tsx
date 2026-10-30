@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { HardDrive, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
+import { HardDrive, PlugZap, RefreshCw, ShieldCheck, Trash2, Unplug } from "lucide-react";
 import { useLab } from "../lib/store.tsx";
-import { pingExtension } from "../lib/extension.ts";
-import type { PingResult } from "../lib/extension.ts";
+import { detectExtension, disconnectExtension, explainError } from "../lib/extension.ts";
+import type { ExtStatus } from "../lib/extension.ts";
 import { Card, PageHead, fmtNum } from "../components/ui.tsx";
 
 type Kind = "visits" | "searches" | "conversations" | "purchases" | "products";
@@ -11,12 +11,18 @@ const PAGE = 50;
 
 export default function Privacy() {
   const { sources, dataset, analysis, removeSource, deleteRecord, deleteAll, persist, setPersist } = useLab();
-  const [ping, setPing] = useState<PingResult | null>(null);
+  const [ext, setExt] = useState<ExtStatus | null>(null);
+  const [extMsg, setExtMsg] = useState<string | null>(null);
   const [kind, setKind] = useState<Kind>("visits");
   const [q, setQ] = useState("");
   const [page, setPage] = useState(0);
   const [confirmAll, setConfirmAll] = useState(false);
-  const recheck = async () => setPing(await pingExtension());
+  const recheck = async () => setExt(await detectExtension());
+  const disconnect = async () => {
+    try { await disconnectExtension(); setExtMsg("Disconnected. Chrome's history permission was removed and this dashboard can no longer read your history. Data already loaded in this tab stays until you delete it below."); }
+    catch (e) { setExtMsg(explainError(e)); }
+    recheck();
+  };
   useEffect(() => { recheck(); }, []);
   useEffect(() => setPage(0), [kind, q]);
 
@@ -36,15 +42,18 @@ export default function Privacy() {
     <>
       <PageHead title="Data Connections & Privacy" intro="Everything this lab knows about you is listed here, and you can delete any of it. The site is static: it has no server, analytics, cookies or AI API calls. Your records stay in this browser tab." />
       <div className="grid g3">
-        <Card title={<span className="row"><ShieldCheck size={16} /> Chrome extension permission</span>} right={<button className="btn sm ghost" onClick={recheck}><RefreshCw size={12} /></button>}>
-          {!ping ? <p className="muted small">Checking…</p> : !ping.ok ? <p className="small">Extension not detected. No browser permission is active for this site.</p> : (
-            <table className="table small"><tbody>
-              <tr><td>Extension</td><td>v{ping.version}</td></tr>
-              <tr><td>History permission</td><td>{ping.historyGranted ? <span className="badge b-strong">Granted</span> : <span className="badge b-insufficient">Not granted</span>}</td></tr>
-              <tr><td>Dashboard connection</td><td>{ping.dashboardAllowed ? <span className="badge b-strong">Allowed</span> : <span className="badge b-insufficient">Off</span>}</td></tr>
+        <Card title={<span className="row"><ShieldCheck size={16} /> Chrome connection</span>} right={<button className="btn sm ghost" onClick={recheck} aria-label="Re-check extension"><RefreshCw size={12} /></button>}>
+          {!ext ? <p className="muted small">Checking…</p> : !ext.installed ? <p className="small">Extension not detected. No browser permission is active for this site.</p> : (
+            <table className="table small" data-testid="ext-status"><tbody>
+              <tr><td>Extension</td><td>v{ext.version}{ext.build === "development" ? " (test build)" : ""}</td></tr>
+              <tr><td>Chrome history permission</td><td>{ext.historyGranted ? <span className="badge b-strong">Granted</span> : <span className="badge b-insufficient">Not granted</span>}</td></tr>
+              <tr><td>This dashboard</td><td>{ext.authorized ? <span className="badge b-strong">Connected{ext.authorizedDays ? ` · ${ext.authorizedDays} days` : ""}</span> : <span className="badge b-insufficient">Not connected</span>}</td></tr>
             </tbody></table>
           )}
-          <p className="small muted">To revoke access, open the extension popup and click <b>Revoke</b>, or remove the extension at <span className="kbd">chrome://extensions</span>. The extension never requests cookies, passwords or sign-in data.</p>
+          {ext?.authorized ? <button className="btn sm danger" onClick={disconnect} data-testid="disconnect"><Unplug size={13} />Disconnect Chrome</button>
+            : ext?.installed ? <a className="btn sm" href="#/connect"><PlugZap size={13} />Connect Chrome</a> : null}
+          {extMsg && <p className="small" style={{ color: "var(--good)" }}>{extMsg}</p>}
+          <p className="small muted">Disconnecting removes Chrome's history permission and this dashboard's access. You can also disconnect from the extension menu, or remove the extension at <span className="kbd">chrome://extensions</span>. The extension never requests cookies, passwords or sign-in data.</p>
         </Card>
         <Card title={<span className="row"><HardDrive size={16} /> Storage on this device</span>}>
           <label className="row small" style={{ alignItems: "flex-start", flexWrap: "nowrap" }}>

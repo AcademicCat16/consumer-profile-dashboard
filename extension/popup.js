@@ -1,31 +1,28 @@
 const $ = (id) => document.getElementById(id);
 const msg = (t) => { $("msg").textContent = t; };
+const DASHBOARD_URL = "https://academiccat16.github.io/consumer-profile-dashboard/";
 
 async function refresh() {
   const granted = await chrome.permissions.contains({ permissions: ["history"] });
-  $("histStatus").textContent = granted ? "granted" : "not granted";
-  $("histStatus").className = granted ? "ok" : "off";
-  $("revoke").disabled = !granted;
-  $("export").disabled = !granted;
-  const s = await chrome.storage.local.get({ allowDashboard: false, days: 90, captured: [] });
-  $("allow").checked = s.allowDashboard;
-  $("days").value = String(s.days);
-  $("capCount").textContent = String(s.captured.length);
+  const { authorizedOrigins = {}, captured = [] } = await chrome.storage.local.get({ authorizedOrigins: {}, captured: [] });
+  const origins = Object.keys(authorizedOrigins);
+  const connected = granted && origins.length > 0;
+  $("conn").textContent = connected ? "● Connected" : "○ Not connected";
+  $("conn").className = `pill ${connected ? "on" : "off"}`;
+  $("connDetail").textContent = connected
+    ? `${origins.map((o) => new URL(o).host).join(", ")} can read your history (approved ${new Date(authorizedOrigins[origins[0]].grantedAt).toLocaleDateString()}).`
+    : "No dashboard can read your history.";
+  $("disconnect").hidden = !granted && !origins.length;
+  $("capCount").textContent = String(captured.length);
 }
 
-$("grant").addEventListener("click", async () => {
-  const ok = await chrome.permissions.request({ permissions: ["history"] });
-  msg(ok ? "History access granted." : "Permission was not granted.");
-  refresh();
-});
-$("revoke").addEventListener("click", async () => {
+$("open").addEventListener("click", () => chrome.tabs.create({ url: `${DASHBOARD_URL}#/connect` }));
+$("disconnect").addEventListener("click", async () => {
+  await chrome.storage.local.set({ authorizedOrigins: {} });
   await chrome.permissions.remove({ permissions: ["history"] });
-  await chrome.storage.local.set({ allowDashboard: false });
-  msg("History access revoked and dashboard connection switched off.");
+  msg("Disconnected. The history permission was removed.");
   refresh();
 });
-$("allow").addEventListener("change", async (e) => { await chrome.storage.local.set({ allowDashboard: e.target.checked }); msg(e.target.checked ? "Dashboard may now request data." : "Dashboard connection off."); });
-$("days").addEventListener("change", async (e) => { await chrome.storage.local.set({ days: Number(e.target.value) }); });
 
 function download(obj, name) {
   const url = URL.createObjectURL(new Blob([JSON.stringify(obj)], { type: "application/json" }));
@@ -34,8 +31,9 @@ function download(obj, name) {
 }
 
 $("export").addEventListener("click", async () => {
-  if (!(await chrome.permissions.contains({ permissions: ["history"] }))) return msg("Grant history access first.");
-  const { days } = await chrome.storage.local.get({ days: 90 });
+  // Asking from this click shows Chrome's prompt if the permission is not granted yet.
+  if (!(await chrome.permissions.request({ permissions: ["history"] }))) return msg("History permission was not granted.");
+  const days = Number($("days").value) || 90;
   msg("Collecting history…");
   const startTime = Date.now() - days * 86400000;
   const items = await chrome.history.search({ text: "", startTime, maxResults: 20000 });
@@ -47,6 +45,7 @@ $("export").addEventListener("click", async () => {
   }
   download({ format: "consumer-lab-extension/v1", exportedAt: new Date().toISOString(), days, items: out }, `chrome-history-${days}d.json`);
   msg(`Exported ${out.length} history entries. Keep this file private.`);
+  refresh();
 });
 
 /* Runs inside the page the user opened. Reads only structured product data the page publishes. */

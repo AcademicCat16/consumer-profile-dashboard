@@ -40,7 +40,7 @@ try {
   console.log("1. Opens on the private-data connection screen with no insights");
   await page.goto(BASE, { waitUntil: "networkidle" });
   check(await page.getByText("A consumer profile built only from").isVisible(), "connection hero visible");
-  check(await page.getByText("Extension not detected").isVisible(), "extension status shown honestly (not installed in test browser)");
+  check(await page.locator('[data-testid="store-pending"]').isVisible(), "extension not installed: onboarding shows install step, store listing marked not published");
   const body0 = await page.locator("main").innerText();
   check(!/Strong price focus|Leans brand-loyal|analysed visits \(of/.test(body0), "no profile insights before data");
   await shot("01-connect");

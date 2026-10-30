@@ -8,16 +8,28 @@ The site is static and has no server, analytics, cookies or AI API calls. Your f
 
 ## Connect your data
 
-### Option A: Chrome extension (live connection)
-1. Download this repository ([ZIP](https://github.com/AcademicCat16/consumer-profile-dashboard/archive/refs/heads/main.zip)) and unzip it.
-2. Open `chrome://extensions`, switch on **Developer mode**, click **Load unpacked** and select the `extension` folder.
-3. Click the **Consumer Lab Connector** icon, then **Grant history access**. Chrome shows its own prompt ("Read your browsing history"), which you approve or decline.
-4. In the popup, tick **Allow my dashboard page to request history and captured products**.
-5. On the dashboard's *Connect* screen, click **Re-check**, choose a period, tick the consent box and click **Import Chrome history**.
+### Option A: Connect Chrome (three steps)
+**Connect Chrome → Approve permission → Explore my profile**
 
-The extension's ID is fixed (`nofeapdkbkkkmfhjmomblmaihnbgcelm`) so the dashboard can find it. It answers only the dashboard's own origins, and only when **both** the Chrome permission and the dashboard toggle are on. It never requests cookies, passwords, sign-in data or network access. To revoke access, use **Revoke** in the popup, or remove the extension.
+1. **Connect Chrome**: add the free *Consumer Lab Connector* extension.
+   - **Chrome Web Store: not published yet.** The dashboard will show a one-click **Add to Chrome** button once Google has reviewed and listed the extension. Publication steps are in [docs/CHROME_WEB_STORE.md](docs/CHROME_WEB_STORE.md).
+   - **Temporary test installation (testing only):**
+     1. Download the [repository ZIP](https://github.com/AcademicCat16/consumer-profile-dashboard/archive/refs/heads/main.zip) and unzip it.
+     2. Open `chrome://extensions` and switch on **Developer mode**.
+     3. Click **Load unpacked** and choose the `extension` folder. Chrome then opens the dashboard automatically.
+2. **Approve permission**: click **Connect Chrome** on the dashboard. A small Consumer Lab window asks you to **Allow and continue**. The first time, Chrome then asks you to confirm "Read your browsing history".
+3. **Explore my profile**: analysis starts automatically in the tab, and the overview opens.
 
-Without connecting, you can click **Export history as JSON** in the popup and import that file instead.
+How consent works:
+- There is one approval, for one dashboard origin and the period you chose. A web page cannot grant itself access.
+- Returning visits need one click and no new prompt. A longer period asks again.
+- **Disconnect** (Data & Privacy, or the extension menu) removes Chrome's history permission and the approval. Removing the permission in Chrome settings does the same.
+- The extension never requests cookies, passwords, sign-in data, host permissions or network access.
+- The development build's ID is fixed (`nofeapdkbkkkmfhjmomblmaihnbgcelm`). The store build will get its own ID, which goes in [src/lib/config.ts](src/lib/config.ts) after approval. The dashboard looks for the store build first, then the development build.
+
+Without connecting, you can use the extension menu → **Export history as a file instead**, then import that file.
+
+Privacy policy: https://academiccat16.github.io/consumer-profile-dashboard/privacy.html
 
 ### Option B: import exports (drag and drop on the Connect screen)
 | Source | How to get it |
@@ -54,8 +66,11 @@ Keep personal exports in `private-data/`. It is git-ignored, and so are the comm
 npm install
 npm run dev          # local dev server
 npm run test:unit    # analysis engine checks (hand-computed expected values)
-npm run test:ext     # extension consent gating + product capture
+npm run test:ext     # extension consent gating, consent window, product capture (mocked chrome API)
 npm run build && npm run test:e2e   # end-to-end UI test in system Chrome
+npm run test:onboarding             # first-run flow against a mocked extension
+npm run test:ext-real               # REAL unpacked extension in Playwright Chromium (history pre-granted)
+npm run package:ext                 # Chrome Web Store upload ZIP → extension-dist/
 npm run check:privacy               # fails if personal-data files or fixtures would be committed/published
 npm run deploy       # privacy check, build, publish dist/ to gh-pages
 ```

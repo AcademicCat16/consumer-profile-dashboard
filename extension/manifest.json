@@ -1,9 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Consumer Lab Connector",
-  "version": "1.0.0",
-  "description": "Lets YOUR Consumer Intelligence Laboratory read your Chrome history locally, only after you grant permission. No data leaves your computer.",
+  "short_name": "Consumer Lab",
+  "version": "1.1.0",
+  "description": "Connects your own Chrome history, with your approval, to the Consumer Lab dashboard for private, on-device analysis.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvTMX7IwnVNL1QQPhLtqNwryn/yRWoBWHLvbQWJ7gnSDiilanA30vF/fn9FPmSOcX0uBzsb/OiioOQTx+2rxfUczI8Tg2b8kTMt5So7ApjskLxesMxRGj23Xq8+d2TELu7x+TFg67JgCmCUeuyF/HSh7o6Swfw9IUX+mtQQlTmKcPV2xJY4aLvqlirKZyyQTLUGDM1TmpL+m02UFfqt1Q5VA1LRoV/I9Rhs690I3zXPUs7T0osFcUocFkyO0Yrab91ZDPeWA0eZ1SKtptYPodGfSs3d5BuTJKreqICftN7eIfgax57BgCjl/xO8Klg78goM4uG+l02eohx3h0hZ8K5QIDAQAB",
+  "minimum_chrome_version": "116",
+  "homepage_url": "https://academiccat16.github.io/consumer-profile-dashboard/",
   "permissions": [
     "storage",
     "activeTab",
@@ -17,7 +20,11 @@
   },
   "action": {
     "default_title": "Consumer Lab Connector",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
   },
   "externally_connectable": {
     "matches": [
@@ -27,6 +34,9 @@
     ]
   },
   "icons": {
-    "128": "icon128.png"
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   }
 }

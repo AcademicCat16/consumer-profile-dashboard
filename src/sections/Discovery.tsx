@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { CheckCircle2, ExternalLink, FileUp, Loader2, RefreshCw, XCircle } from "lucide-react";
 import { useLab } from "../lib/store.tsx";
 import { fromCaptured, parseFile } from "../lib/parsers.ts";
-import { explainError, fetchCapturedProducts } from "../lib/extension.ts";
+import { detectExtension, explainError, fetchCapturedProducts } from "../lib/extension.ts";
 import { Card, PageHead, fmtNum } from "../components/ui.tsx";
 
 const CAPTURE_LABEL = "Captured product pages (extension)";
@@ -26,6 +26,7 @@ export default function Discovery() {
   const sync = async () => {
     setBusy(true); setMsg(null);
     try {
+      await detectExtension();
       const raw = await fetchCapturedProducts();
       const seen = new Set<string>();
       const products = fromCaptured(raw as Parameters<typeof fromCaptured>[0], "x").filter((p) => (seen.has(p.url + p.name) ? false : (seen.add(p.url + p.name), true)));

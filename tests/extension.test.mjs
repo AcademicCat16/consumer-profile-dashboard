@@ -15,42 +15,113 @@ const ext = join(dirname(fileURLToPath(import.meta.url)), "..", "extension");
 let passed = 0;
 const ok = (c, l) => { assert.ok(c, l); passed++; console.log("  ✓", l); };
 
-// ---------- 1. background gating ----------
-const state = { granted: false, store: { allowDashboard: false, days: 90, captured: [{ name: "X", url: "https://shop.example.test/x" }] }, historyCalls: 0 };
-let listener;
+// ---------- 1. background consent gating ----------
+const DASH = "https://academiccat16.github.io";
+const local = { authorizedOrigins: {}, captured: [{ name: "X", url: "https://shop.example.test/x" }] }, session = {};
+const calls = { windows: [], tabs: [], historySearch: 0, removed: 0 };
+let granted = false, listener, onRemoved;
+const getter = (store) => async (q) => typeof q === "string" ? { [q]: store[q] } : q && typeof q === "object" ? Object.fromEntries(Object.entries(q).map(([k, d]) => [k, store[k] ?? d])) : { ...store };
 const chrome = {
-  storage: { local: { get: async (defaults) => ({ ...defaults, ...state.store }) } },
-  permissions: { contains: async () => state.granted },
-  runtime: { getManifest: () => ({ version: "1.0.0" }), onMessageExternal: { addListener: (f) => (listener = f) } },
+  storage: {
+    local: { get: getter(local), set: async (o) => Object.assign(local, o) },
+    session: { get: getter(session), set: async (o) => Object.assign(session, o), remove: async (k) => { delete session[k]; } },
+  },
+  permissions: { contains: async () => granted, remove: async () => { granted = false; calls.removed++; onRemoved({ permissions: ["history"] }); return true; }, onRemoved: { addListener: (f) => (onRemoved = f) } },
+  runtime: { getManifest: () => ({ version: "1.1.0" }), getURL: (p) => `chrome-extension://test/${p}`, onMessageExternal: { addListener: (f) => (listener = f) }, onInstalled: { addListener: (f) => f({ reason: "install" }) } },
+  windows: { create: async (o) => { calls.windows.push(o); return { id: 9 }; } },
+  tabs: { create: async (o) => { calls.tabs.push(o); } },
   history: {
-    search: async () => { state.historyCalls++; return [{ url: "https://example.test/a", title: "A", visitCount: 2, typedCount: 0, lastVisitTime: Date.now() }]; },
+    search: async () => { calls.historySearch++; return [{ url: "https://example.test/a", title: "A", visitCount: 2, typedCount: 0, lastVisitTime: Date.now() }]; },
     getVisits: async () => [{ visitTime: Date.now() - 1000, transition: "link" }, { visitTime: Date.now() - 400 * 86400000, transition: "link" }],
   },
 };
-vm.runInNewContext(readFileSync(join(ext, "background.js"), "utf8"), { chrome, console, Date, Math, Number, String });
-const ask = (msg) => new Promise((res) => listener(msg, { origin: "https://academiccat16.github.io" }, res));
+vm.runInNewContext(readFileSync(join(ext, "background.js"), "utf8"), { chrome, console, Date, Math, Number, String, crypto: globalThis.crypto });
+const ask = (msg, origin = DASH) => new Promise((res) => listener(msg, { origin, tab: { id: 5, windowId: 2 } }, res));
+await new Promise((r) => setTimeout(r, 10));
 
 const manifest = JSON.parse(readFileSync(join(ext, "manifest.json"), "utf8"));
-ok(manifest.manifest_version === 3 && manifest.optional_permissions.includes("history") && !manifest.permissions.includes("history"), "history is an optional permission the user must grant");
-ok(!JSON.stringify(manifest).match(/cookies|webRequest|<all_urls>|identity/), "no cookie, network-interception, all-sites or identity permissions");
+ok(manifest.manifest_version === 3 && manifest.optional_permissions.includes("history") && !manifest.permissions.includes("history"), "history is an optional permission requested at runtime");
+ok(!JSON.stringify(manifest).match(/cookies|webRequest|<all_urls>|identity|host_permissions|"tabs"/), "no cookie, network, all-sites, identity, host or tabs permissions");
 ok(manifest.externally_connectable.matches.every((m) => /academiccat16\.github\.io|localhost|127\.0\.0\.1/.test(m)), "only the dashboard origins may message the extension");
+ok(Object.values(manifest.icons).length === 4 && manifest.description.length <= 132, "store-ready icons and description length");
+ok(calls.tabs.length === 1 && calls.tabs[0].url.startsWith("https://academiccat16.github.io/consumer-profile-dashboard/#/connect"), "fresh install opens the dashboard's connect step");
 
 let r = await ask({ type: "ping" });
-ok(r.ok && r.historyGranted === false && r.dashboardAllowed === false, "ping reports state without data");
+ok(r.ok && r.historyGranted === false && r.authorized === false, "ping reports state without data");
 r = await ask({ type: "getHistory", days: 30 });
-ok(!r.ok && r.error === "history_permission_not_granted" && state.historyCalls === 0, "no history without Chrome permission");
-state.granted = true;
+ok(!r.ok && calls.historySearch === 0, "no history before approval");
+r = await ask({ type: "connect", days: 90 });
+const reqKey = Object.keys(session)[0];
+ok(r.status === "consent_opened" && calls.windows.length === 1 && calls.windows[0].url.includes("consent.html?id=") && session[reqKey].origin === DASH && session[reqKey].days === 90 && session[reqKey].tabId === 5, "connect opens the extension's consent window and records the request in session storage");
+granted = true; // Chrome permission granted, but nobody clicked Allow for this origin
 r = await ask({ type: "getHistory", days: 30 });
-ok(!r.ok && r.error === "dashboard_connection_not_allowed" && state.historyCalls === 0, "no history until the user allows the dashboard connection");
+ok(!r.ok && r.error === "origin_not_authorized" && calls.historySearch === 0, "Chrome permission alone is not enough: the dashboard origin must be approved");
+local.authorizedOrigins = { [DASH]: { grantedAt: new Date().toISOString(), days: 90 } }; // what consent.js writes on Allow
+r = await ask({ type: "ping" });
+ok(r.authorized && r.authorizedDays === 90, "ping reports the approval and its period");
+r = await ask({ type: "getHistory", days: 365 });
+ok(r.ok && r.days === 90 && r.items.length === 1 && r.items[0].visits.length === 1, "history returned after approval, capped at the approved period");
+r = await ask({ type: "getHistory", days: 30 }, "https://evil.example");
+ok(!r.ok && r.error === "origin_not_authorized", "another origin is not authorized (and externally_connectable blocks it anyway)");
+r = await ask({ type: "connect", days: 60 });
+ok(r.status === "already_authorized" && calls.windows.length === 1, "no repeated consent prompt within the approved period");
+r = await ask({ type: "connect", days: 365 });
+ok(r.status === "consent_opened" && calls.windows.length === 2, "asking for a longer period requires a new approval");
 r = await ask({ type: "getCapturedProducts" });
-ok(!r.ok, "no captured products until the user allows the dashboard connection");
-state.store.allowDashboard = true;
-r = await ask({ type: "getHistory", days: 30 });
-ok(r.ok && r.format === "consumer-lab-extension/v1" && r.items.length === 1 && r.items[0].visits.length === 1, "history returned after double consent, visits limited to the requested period");
-r = await ask({ type: "getHistory", days: 9999 });
-ok(r.days === 365, "period capped at 365 days");
+ok(r.ok && r.products.length === 1, "captured products shared with the approved dashboard");
+r = await ask({ type: "disconnect" });
+ok(r.ok && calls.removed === 1 && granted === false && Object.keys(local.authorizedOrigins).length === 0, "disconnect removes the permission and every approval");
+local.authorizedOrigins = { [DASH]: { grantedAt: "x", days: 90 } }; granted = true;
+onRemoved({ permissions: ["history"] }); await new Promise((r2) => setTimeout(r2, 10));
+ok(Object.keys(local.authorizedOrigins).length === 0, "removing the permission in Chrome settings also clears approvals");
 r = await ask({ type: "unknown" });
 ok(!r.ok, "unknown requests rejected");
+
+// ---------- 1b. consent window (consent.html + consent.js) with a mocked chrome API ----------
+{
+  const browser = await chromium.launch({ channel: "chrome", headless: true });
+  const page = await browser.newPage();
+  await page.route("https://ext.test/**", (route) => route.fulfill({ path: join(ext, new URL(route.request().url()).pathname.slice(1)) }));
+  const run = async (opts) => {
+    const p2 = await browser.newPage();
+    await p2.route("https://ext.test/**", (route) => route.fulfill({ path: join(ext, new URL(route.request().url()).pathname.slice(1)) }));
+    await p2.addInitScript(({ permissionResult, alreadyGranted, expired }) => {
+      const st = { local: { authorizedOrigins: {} }, session: { "req:abc": { origin: "https://academiccat16.github.io", days: 180, tabId: 5, windowId: 2, at: expired ? 0 : Date.now() } } };
+      window.__log = { requested: 0, tabs: [], wins: [], closed: false };
+      window.close = () => { window.__log.closed = true; };
+      const g = (s) => async (q) => (typeof q === "string" ? { [q]: s[q] } : Object.fromEntries(Object.entries(q).map(([k, d]) => [k, s[k] ?? d])));
+      window.chrome = {
+        storage: { local: { get: g(st.local), set: async (o) => Object.assign(st.local, o) }, session: { get: g(st.session), remove: async (k) => { delete st.session[k]; } } },
+        permissions: { contains: async () => alreadyGranted, request: async () => { window.__log.requested++; return permissionResult; } },
+        tabs: { update: async (id) => window.__log.tabs.push(id) }, windows: { update: async (id) => window.__log.wins.push(id) },
+      };
+      window.__st = st;
+    }, { expired: false, ...opts });
+    await p2.goto("https://ext.test/consent.html?id=abc");
+    await p2.waitForTimeout(200);
+    return p2;
+  };
+  const state = (p) => p.evaluate(() => ({ auth: window.__st.local.authorizedOrigins, session: window.__st.session, log: window.__log }));
+  let p = await run({ permissionResult: true, alreadyGranted: false });
+  ok((await p.locator("#origin").innerText()) === "academiccat16.github.io" && (await p.locator("#days").innerText()) === "last 180 days" && (await p.locator("#firstTime").isVisible()), "consent window names the requesting site, the period, and that Chrome will ask once");
+  await p.click("#allow"); await p.waitForTimeout(800);
+  let st = await state(p);
+  ok(st.log.requested === 1 && st.auth["https://academiccat16.github.io"]?.days === 180 && !st.session["req:abc"], "Allow requests Chrome's permission, then records the approval for that origin and period");
+  ok(st.log.tabs[0] === 5 && st.log.wins[0] === 2 && st.log.closed, "after approval it returns focus to the dashboard tab and closes");
+  p = await run({ permissionResult: false, alreadyGranted: false });
+  await p.click("#allow"); await p.waitForTimeout(300);
+  st = await state(p);
+  ok(Object.keys(st.auth).length === 0 && !st.log.closed && /not granted/.test(await p.locator("#status").innerText()), "declining Chrome's prompt approves nothing");
+  p = await run({ permissionResult: true, alreadyGranted: true });
+  ok(!(await p.locator("#firstTime").isVisible()), "no 'Chrome will ask' note when the permission already exists");
+  p = await run({ permissionResult: true, alreadyGranted: false });
+  await p.click("#deny"); await p.waitForTimeout(200);
+  st = await state(p);
+  ok(Object.keys(st.auth).length === 0 && st.log.requested === 0 && st.log.closed, "Not now approves nothing and closes");
+  p = await run({ permissionResult: true, alreadyGranted: false, expired: true });
+  ok(await p.locator("#allow").isDisabled(), "expired requests cannot be approved");
+  await browser.close();
+}
 
 // ---------- 2. product capture ----------
 const src = readFileSync(join(ext, "popup.js"), "utf8");

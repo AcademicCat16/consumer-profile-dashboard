@@ -11,6 +11,9 @@
     "test:unit": "node tests/analysis.test.ts",
     "test:e2e": "node tests/e2e.mjs",
     "test:ext": "node tests/extension.test.mjs",
+    "test:onboarding": "node tests/onboarding.e2e.mjs",
+    "test:ext-real": "node tests/extension-real.e2e.mjs",
+    "package:ext": "node scripts/package-extension.mjs",
     "check:privacy": "node scripts/check-no-private-data.mjs",
     "deploy": "node scripts/check-no-private-data.mjs && node scripts/deploy.mjs"
   },

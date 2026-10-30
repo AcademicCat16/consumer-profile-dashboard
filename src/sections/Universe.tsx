@@ -54,7 +54,7 @@ export default function Universe() {
     const text = css.getPropertyValue("--text").trim() || "#e8ecf8";
     const edgeColor = theme === "dark" ? "rgba(148,163,214,0.16)" : "rgba(30,41,80,0.13)";
     const renderer = new Sigma(g, box.current, {
-      labelColor: { color: text }, labelFont: "Inter", labelSize: 12, labelWeight: "500", labelDensity: 0.6, labelRenderedSizeThreshold: 7,
+      labelColor: { color: text }, labelFont: "Inter, system-ui, sans-serif", labelSize: 12, labelWeight: "500", labelDensity: 0.6, labelRenderedSizeThreshold: 7,
       defaultEdgeColor: edgeColor, zIndex: true, allowInvalidContainer: true,
       defaultDrawNodeHover: (ctx, d, settings) => {
         // compact hover label that respects the theme
