@@ -1,0 +1,28 @@
+# build & tooling
+node_modules/
+dist/
+*.log
+*.tsbuildinfo
+.DS_Store
+
+# ---- PRIVATE DATA: never commit personal exports or profiles ----
+private-data/
+tests/.tmp/
+tests/screenshots/
+tests/downloads/
+*.private.*
+**/Takeout/**
+takeout-*.zip
+conversations.json
+chat.html
+message_feedback.json
+chrome-history-*.json
+captured-products.json
+consumer-profile*.json
+Retail.OrderHistory*
+*OrderHistory*.csv
+History
+History-journal
+*.sqlite
+*.db
+*.pem

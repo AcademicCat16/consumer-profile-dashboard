@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Consumer Lab Connector",
+  "version": "1.0.0",
+  "description": "Lets YOUR Consumer Intelligence Laboratory read your Chrome history locally, only after you grant permission. No data leaves your computer.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvTMX7IwnVNL1QQPhLtqNwryn/yRWoBWHLvbQWJ7gnSDiilanA30vF/fn9FPmSOcX0uBzsb/OiioOQTx+2rxfUczI8Tg2b8kTMt5So7ApjskLxesMxRGj23Xq8+d2TELu7x+TFg67JgCmCUeuyF/HSh7o6Swfw9IUX+mtQQlTmKcPV2xJY4aLvqlirKZyyQTLUGDM1TmpL+m02UFfqt1Q5VA1LRoV/I9Rhs690I3zXPUs7T0osFcUocFkyO0Yrab91ZDPeWA0eZ1SKtptYPodGfSs3d5BuTJKreqICftN7eIfgax57BgCjl/xO8Klg78goM4uG+l02eohx3h0hZ8K5QIDAQAB",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "optional_permissions": [
+    "history"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Consumer Lab Connector",
+    "default_popup": "popup.html"
+  },
+  "externally_connectable": {
+    "matches": [
+      "https://academiccat16.github.io/*",
+      "http://localhost/*",
+      "http://127.0.0.1/*"
+    ]
+  },
+  "icons": {
+    "128": "icon128.png"
+  }
+}

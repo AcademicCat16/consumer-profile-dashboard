@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Consumer Lab Connector</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; width: 360px; font: 13px/1.45 "Segoe UI", system-ui, sans-serif; background: #0d1018; color: #e6e9f2; }
+    header { padding: 14px 16px 10px; border-bottom: 1px solid #1f2533; }
+    h1 { font-size: 14px; margin: 0; }
+    .sub { color: #8b93a7; font-size: 11.5px; margin-top: 2px; }
+    section { padding: 12px 16px; border-bottom: 1px solid #1a1f2b; }
+    h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #98a4ff; margin: 0 0 8px; }
+    p { margin: 0 0 8px; color: #b4bbcc; }
+    ul { margin: 0 0 8px 16px; padding: 0; color: #b4bbcc; }
+    button { font: inherit; border: 0; border-radius: 9px; padding: 7px 11px; cursor: pointer; background: #222838; color: #e6e9f2; }
+    button.primary { background: #7c8cff; color: #0b0d12; font-weight: 600; }
+    button.danger { background: #3a1f26; color: #fecdd3; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .status { font-size: 12px; padding: 6px 9px; border-radius: 8px; background: #161b27; margin-bottom: 8px; }
+    .ok { color: #6ee7b7; } .off { color: #fca5a5; }
+    label { display: flex; gap: 8px; align-items: center; color: #cfd4df; }
+    select { background: #161b27; color: #e6e9f2; border: 1px solid #2a3142; border-radius: 7px; padding: 4px; }
+    small { color: #8b93a7; display: block; margin-top: 6px; }
+    #msg { min-height: 16px; color: #fde68a; font-size: 12px; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Consumer Lab Connector</h1>
+    <div class="sub">Your data stays on this computer. Nothing is uploaded.</div>
+  </header>
+
+  <section>
+    <h2>1 · Chrome history permission</h2>
+    <p>If you allow it, the lab can read your <b>visited URLs, page titles, visit times and visit counts</b> for a period you choose. It never reads cookies, passwords, form data or session tokens.</p>
+    <div class="status">History permission: <b id="histStatus">checking…</b></div>
+    <div class="row">
+      <button class="primary" id="grant">Grant history access</button>
+      <button class="danger" id="revoke">Revoke</button>
+    </div>
+    <small>Chrome will show its own permission prompt. You can revoke at any time here or by removing the extension.</small>
+  </section>
+
+  <section>
+    <h2>2 · Dashboard connection</h2>
+    <label><input type="checkbox" id="allow" /> Allow my dashboard page to request history and captured products</label>
+    <div class="row" style="margin-top:8px">
+      <label>Period <select id="days"><option value="30">30 days</option><option value="90">90 days</option><option value="180">180 days</option><option value="365">365 days</option></select></label>
+    </div>
+    <small>Only these pages can ask: academiccat16.github.io and localhost. They can ask only while this box is ticked.</small>
+  </section>
+
+  <section>
+    <h2>3 · Export instead (optional)</h2>
+    <p>Download your history as a JSON file, then import it into the dashboard yourself.</p>
+    <button id="export">Export history as JSON</button>
+  </section>
+
+  <section>
+    <h2>4 · Capture products from this page</h2>
+    <p>Open a product or search-results page on a retailer site, then click Capture. Only product details the page itself publishes (structured data) are read, and only when you click.</p>
+    <div class="row">
+      <button class="primary" id="capture">Capture products on this page</button>
+      <button id="exportProducts">Export captured</button>
+      <button class="danger" id="clearProducts">Clear</button>
+    </div>
+    <small><span id="capCount">0</span> products captured so far.</small>
+  </section>
+  <div style="padding: 0 16px 12px"><div id="msg" role="status"></div></div>
+  <script src="popup.js"></script>
+</body>
+</html>
