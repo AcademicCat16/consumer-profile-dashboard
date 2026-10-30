@@ -205,3 +205,6 @@ details[open] > summary::before { content: "▾ "; }
   .hero { padding: 22px; }
   .hero h1 { font-size: 26px; }
 }
+
+/* vertical rhythm between stacked blocks */
+.main > .grid + .card, .main > .card + .card, .main > .card + .grid { margin-top: 16px; }
